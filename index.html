@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: wss: https:;">
     <title>ZTorrent - BitTorrent Client</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -35,76 +33,122 @@
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
+            user-select: none;
         }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-dim); }
+
+        /* Title Bar */
+        .titlebar {
+            height: 32px;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            -webkit-app-region: drag;
+            border-bottom: 1px solid var(--border);
         }
-        ::-webkit-scrollbar-track {
-            background: var(--bg);
+
+        .titlebar-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary-glow);
         }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 4px;
+
+        .titlebar-controls {
+            display: flex;
+            -webkit-app-region: no-drag;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-dim);
+
+        .titlebar-btn {
+            width: 46px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .titlebar-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text);
+        }
+
+        .titlebar-btn.close:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .titlebar-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
         }
 
         /* Layout */
         .app {
             display: flex;
-            min-height: 100vh;
+            height: calc(100vh - 32px);
         }
 
         /* Sidebar */
         .sidebar {
-            width: 240px;
+            width: 220px;
             background: var(--surface);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            z-index: 100;
         }
 
         .logo {
-            padding: 24px;
+            padding: 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .logo-icon {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             background: linear-gradient(135deg, var(--primary), var(--primary-dim));
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 20px var(--primary-glow);
+            box-shadow: 0 0 15px var(--primary-glow);
             animation: pulse 2s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 20px var(--primary-glow); }
-            50% { box-shadow: 0 0 30px var(--primary-glow), 0 0 40px var(--primary-glow); }
+            0%, 100% { box-shadow: 0 0 15px var(--primary-glow); }
+            50% { box-shadow: 0 0 25px var(--primary-glow), 0 0 35px var(--primary-glow); }
         }
 
         .logo-icon svg {
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             fill: var(--bg);
         }
 
         .logo-text {
             font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--primary);
             text-shadow: 0 0 10px var(--primary-glow);
@@ -113,7 +157,7 @@
 
         .nav {
             flex: 1;
-            padding: 16px 12px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             gap: 4px;
@@ -123,12 +167,13 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
             color: var(--text-dim);
             border: 1px solid transparent;
+            font-size: 13px;
         }
 
         .nav-item:hover {
@@ -143,16 +188,11 @@
         }
 
         .nav-item svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             stroke: currentColor;
             stroke-width: 1.5;
             fill: none;
-        }
-
-        .nav-item span {
-            font-size: 14px;
-            font-weight: 500;
         }
 
         /* Global Stats */
@@ -169,27 +209,25 @@
             margin-bottom: 8px;
         }
 
-        .stat-row:last-child {
-            margin-bottom: 0;
-        }
+        .stat-row:last-child { margin-bottom: 0; }
 
         .stat-label {
             color: var(--text-dim);
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         .stat-value {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--primary);
         }
 
         .ratio-badge {
-            padding: 4px 8px;
+            padding: 3px 8px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
         }
 
@@ -200,41 +238,38 @@
         /* Main Content */
         .main {
             flex: 1;
-            margin-left: 240px;
-            padding: 24px 32px;
-            min-height: 100vh;
+            padding: 20px 28px;
+            overflow-y: auto;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
 
         .header h1 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 28px;
+            font-size: 22px;
             font-weight: 700;
             color: var(--text);
         }
 
-        .header h1 span {
-            color: var(--primary);
-        }
+        .header h1 span { color: var(--primary); }
 
         /* Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 12px 20px;
+            padding: 10px 18px;
             border-radius: 8px;
             border: 1px solid var(--primary);
             background: transparent;
             color: var(--primary);
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
@@ -247,8 +282,8 @@
         }
 
         .btn svg {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             stroke: currentColor;
             stroke-width: 2;
             fill: none;
@@ -264,37 +299,22 @@
         }
 
         .btn-sm {
-            padding: 8px 12px;
-            font-size: 12px;
-        }
-
-        .btn-icon {
-            width: 36px;
-            height: 36px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-        }
-
-        .btn-icon svg {
-            width: 18px;
-            height: 18px;
+            padding: 6px 10px;
+            font-size: 11px;
         }
 
         /* Torrent List */
         .torrent-list {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
         }
 
         .torrent-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 20px;
+            padding: 18px;
             transition: all 0.2s;
             cursor: pointer;
         }
@@ -308,51 +328,38 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
+            gap: 12px;
         }
 
         .torrent-name {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text);
-            max-width: 70%;
+            flex: 1;
             word-break: break-word;
         }
 
         .torrent-status {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
+            gap: 6px;
+            padding: 5px 10px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
+            white-space: nowrap;
         }
 
-        .status-seeding {
-            background: rgba(0, 255, 65, 0.15);
-            color: var(--primary);
-        }
-
-        .status-downloading {
-            background: rgba(0, 204, 255, 0.15);
-            color: #00ccff;
-        }
-
-        .status-paused {
-            background: rgba(136, 136, 136, 0.15);
-            color: var(--text-dim);
-        }
-
-        .status-error {
-            background: rgba(255, 65, 65, 0.15);
-            color: var(--danger);
-        }
+        .status-seeding { background: rgba(0, 255, 65, 0.15); color: var(--primary); }
+        .status-downloading { background: rgba(0, 204, 255, 0.15); color: #00ccff; }
+        .status-paused { background: rgba(136, 136, 136, 0.15); color: var(--text-dim); }
+        .status-error { background: rgba(255, 65, 65, 0.15); color: var(--danger); }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: currentColor;
             animation: blink 1s infinite;
@@ -363,23 +370,20 @@
             50% { opacity: 0.5; }
         }
 
-        /* Progress Bar */
-        .progress-container {
-            margin-bottom: 16px;
-        }
+        /* Progress */
+        .progress-container { margin-bottom: 14px; }
 
         .progress-bar {
-            height: 8px;
+            height: 6px;
             background: var(--border);
-            border-radius: 4px;
+            border-radius: 3px;
             overflow: hidden;
-            position: relative;
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-            border-radius: 4px;
+            border-radius: 3px;
             transition: width 0.3s;
             position: relative;
         }
@@ -403,106 +407,93 @@
         .progress-info {
             display: flex;
             justify-content: space-between;
-            margin-top: 8px;
-            font-size: 12px;
+            margin-top: 6px;
+            font-size: 11px;
             color: var(--text-dim);
         }
 
-        /* Torrent Stats */
+        /* Stats */
         .torrent-stats {
             display: flex;
-            gap: 24px;
+            gap: 20px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .torrent-stat {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .torrent-stat svg {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             stroke: var(--text-dim);
             stroke-width: 1.5;
             fill: none;
         }
 
-        .torrent-stat-label {
-            font-size: 12px;
-            color: var(--text-dim);
-        }
-
         .torrent-stat-value {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
-            color: var(--text);
         }
 
         .speed-down { color: #00ccff; }
         .speed-up { color: var(--primary); }
 
-        /* Peers */
         .peer-badge {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 4px 8px;
+            padding: 3px 8px;
             border-radius: 4px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
         }
 
-        .peer-seeders {
-            background: rgba(0, 255, 65, 0.15);
-            color: var(--primary);
-        }
-
-        .peer-leechers {
-            background: rgba(255, 204, 0, 0.15);
-            color: var(--warning);
-        }
+        .peer-seeders { background: rgba(0, 255, 65, 0.15); color: var(--primary); }
+        .peer-leechers { background: rgba(255, 204, 0, 0.15); color: var(--warning); }
 
         /* Actions */
         .torrent-actions {
             display: flex;
             gap: 8px;
-            margin-top: 16px;
-            padding-top: 16px;
+            margin-top: 14px;
+            padding-top: 14px;
             border-top: 1px solid var(--border);
         }
 
         /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 80px 40px;
+            padding: 60px 40px;
             background: var(--surface);
             border: 2px dashed var(--border);
             border-radius: 12px;
         }
 
         .empty-state svg {
-            width: 64px;
-            height: 64px;
+            width: 56px;
+            height: 56px;
             stroke: var(--text-dim);
             stroke-width: 1;
             fill: none;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             opacity: 0.5;
         }
 
         .empty-state h3 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
+            font-size: 18px;
             color: var(--text);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .empty-state p {
             color: var(--text-dim);
-            font-size: 14px;
-            margin-bottom: 24px;
+            font-size: 13px;
+            margin-bottom: 20px;
         }
 
         /* Modal */
@@ -512,7 +503,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -532,8 +523,8 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             width: 100%;
-            max-width: 500px;
-            padding: 32px;
+            max-width: 480px;
+            padding: 28px;
             transform: scale(0.9);
             transition: all 0.3s;
         }
@@ -546,18 +537,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .modal-header h2 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
+            font-size: 18px;
             color: var(--primary);
         }
 
         .modal-close {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 8px;
             border: 1px solid var(--border);
             background: transparent;
@@ -575,36 +566,65 @@
         }
 
         .modal-close svg {
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             stroke: currentColor;
             stroke-width: 2;
             fill: none;
         }
 
         /* Form */
-        .form-group {
-            margin-bottom: 20px;
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 18px;
         }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        .drop-zone svg {
+            width: 44px;
+            height: 44px;
+            stroke: var(--text-dim);
+            stroke-width: 1.5;
+            fill: none;
+            margin-bottom: 14px;
+        }
+
+        .drop-zone p {
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .drop-zone span { color: var(--primary); }
+
+        .form-group { margin-bottom: 16px; }
 
         .form-label {
             display: block;
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .form-input {
             width: 100%;
-            padding: 14px 16px;
+            padding: 12px 14px;
             border: 1px solid var(--border);
             border-radius: 8px;
             background: var(--bg);
             color: var(--text);
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.2s;
         }
 
@@ -614,130 +634,44 @@
             box-shadow: 0 0 10px var(--primary-glow);
         }
 
-        .form-input::placeholder {
-            color: var(--text-dim);
-        }
+        .form-input::placeholder { color: var(--text-dim); }
 
         .form-hint {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-dim);
-            margin-top: 8px;
+            margin-top: 6px;
         }
 
         .form-actions {
             display: flex;
-            gap: 12px;
-            margin-top: 24px;
+            gap: 10px;
+            margin-top: 20px;
         }
 
-        .form-actions .btn {
-            flex: 1;
-        }
+        .form-actions .btn { flex: 1; justify-content: center; }
 
-        /* Drop Zone */
-        .drop-zone {
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            transition: all 0.2s;
-            cursor: pointer;
-            margin-bottom: 20px;
-        }
-
-        .drop-zone:hover, .drop-zone.dragover {
-            border-color: var(--primary);
-            background: rgba(0, 255, 65, 0.05);
-        }
-
-        .drop-zone svg {
-            width: 48px;
-            height: 48px;
-            stroke: var(--text-dim);
-            stroke-width: 1.5;
-            fill: none;
-            margin-bottom: 16px;
-        }
-
-        .drop-zone p {
-            color: var(--text-dim);
-            font-size: 14px;
-        }
-
-        .drop-zone span {
-            color: var(--primary);
-        }
-
-        /* File Input Hidden */
-        .file-input {
-            display: none;
-        }
-
-        /* Detail Modal */
-        .detail-section {
-            margin-bottom: 24px;
-        }
-
-        .detail-section h3 {
-            font-size: 14px;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-        }
-
-        .file-list {
-            max-height: 200px;
-            overflow-y: auto;
-            background: var(--bg);
-            border-radius: 8px;
-            padding: 12px;
-        }
-
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border);
-            font-size: 13px;
-        }
-
-        .file-item:last-child {
-            border-bottom: none;
-        }
-
-        .file-name {
-            color: var(--text);
-            word-break: break-all;
-        }
-
-        .file-size {
-            color: var(--text-dim);
-            white-space: nowrap;
-            margin-left: 16px;
-        }
-
-        /* Toast Notifications */
+        /* Toast */
         .toast-container {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
+            bottom: 20px;
+            right: 20px;
             z-index: 2000;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
         .toast {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 16px 20px;
+            padding: 14px 18px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             animation: slideIn 0.3s ease-out;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            min-width: 280px;
         }
 
         .toast.success { border-color: var(--primary); }
@@ -745,19 +679,14 @@
         .toast.warning { border-color: var(--warning); }
 
         @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
         .toast-icon {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
         }
 
         .toast.success .toast-icon { stroke: var(--primary); }
@@ -772,37 +701,33 @@
         }
 
         .toast-message {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text);
         }
 
-        /* Loading Spinner */
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 200px;
-            }
-            .main {
-                margin-left: 200px;
-                padding: 16px;
-            }
-        }
+        /* File Input */
+        .file-input { display: none; }
     </style>
 </head>
 <body>
+    <!-- Title Bar -->
+    <div class="titlebar">
+        <div class="titlebar-title">
+            <span>⬡ ZTORRENT</span>
+        </div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn" id="minimize-btn" title="Minimize">
+                <svg viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6"/></svg>
+            </button>
+            <button class="titlebar-btn" id="maximize-btn" title="Maximize">
+                <svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" stroke-width="1.5"/></svg>
+            </button>
+            <button class="titlebar-btn close" id="close-btn" title="Close">
+                <svg viewBox="0 0 12 12"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+            </button>
+        </div>
+    </div>
+
     <div class="app">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -814,19 +739,19 @@
             </div>
             
             <nav class="nav">
-                <div class="nav-item active" data-view="torrents">
+                <div class="nav-item active" onclick="showView('torrents')">
                     <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                     <span>Мои торренты</span>
                 </div>
-                <div class="nav-item" data-view="add" onclick="openAddModal()">
+                <div class="nav-item" onclick="openAddModal()">
                     <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     <span>Добавить</span>
                 </div>
-                <div class="nav-item" data-view="stats">
+                <div class="nav-item" onclick="showView('stats')">
                     <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                     <span>Статистика</span>
                 </div>
-                <div class="nav-item" data-view="settings">
+                <div class="nav-item" onclick="showView('settings')">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     <span>Настройки</span>
                 </div>
@@ -845,10 +770,6 @@
                     <span class="stat-label">Рейтинг</span>
                     <span class="ratio-badge ratio-good" id="global-ratio">0.00</span>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">Пиры</span>
-                    <span class="stat-value" id="total-peers">0</span>
-                </div>
             </div>
         </aside>
 
@@ -858,18 +779,15 @@
                 <h1>Мои <span>торренты</span></h1>
                 <button class="btn btn-primary" onclick="openAddModal()">
                     <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Добавить торрент
+                    Добавить
                 </button>
             </div>
 
-            <div class="torrent-list" id="torrent-list">
-                <!-- Torrents will be rendered here -->
-            </div>
-
+            <div class="torrent-list" id="torrent-list"></div>
             <div class="empty-state" id="empty-state" style="display: none;">
                 <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                 <h3>Нет активных торрентов</h3>
-                <p>Добавьте торрент через magnet-ссылку или файл .torrent</p>
+                <p>Добавьте торрент через magnet-ссылку или файл</p>
                 <button class="btn btn-primary" onclick="openAddModal()">
                     <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Добавить торрент
@@ -888,16 +806,23 @@
                 </button>
             </div>
 
-            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('torrent-file').click()">
+            <div class="drop-zone" id="drop-zone">
                 <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <p>Перетащите .torrent файл сюда или <span>выберите файл</span></p>
+                <p>Выберите <span>.torrent файл</span></p>
             </div>
+            
+            <!-- Кнопка выбора файла -->
+            <button class="btn" id="select-file-btn" style="width: 100%; margin-bottom: 16px;">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                📁 Выбрать файл...
+            </button>
+            
             <input type="file" id="torrent-file" class="file-input" accept=".torrent">
 
             <div class="form-group">
                 <label class="form-label">Или вставьте magnet-ссылку</label>
                 <input type="text" class="form-input" id="magnet-link" placeholder="magnet:?xt=urn:btih:...">
-                <p class="form-hint">Magnet-ссылки обычно начинаются с "magnet:?"</p>
+                <p class="form-hint">Magnet-ссылки начинаются с "magnet:?"</p>
             </div>
 
             <div class="form-actions">
@@ -910,33 +835,73 @@
         </div>
     </div>
 
-    <!-- Detail Modal -->
-    <div class="modal-overlay" id="detail-modal">
-        <div class="modal" style="max-width: 600px;">
-            <div class="modal-header">
-                <h2 id="detail-title">Информация о торренте</h2>
-                <button class="modal-close" onclick="closeDetailModal()">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-            </div>
-
-            <div class="detail-section">
-                <h3>Файлы</h3>
-                <div class="file-list" id="file-list">
-                    <!-- Files will be rendered here -->
+    <!-- Stats View -->
+    <div id="stats-view" style="display: none;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+            <h2 style="font-family: 'Orbitron', sans-serif; color: var(--primary); margin-bottom: 20px;">📊 Статистика</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <div style="background: var(--bg); border-radius: 8px; padding: 20px; text-align: center;">
+                    <div style="color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Скачано всего</div>
+                    <div style="color: #00ccff; font-size: 28px; font-weight: bold;" id="stats-downloaded">0 B</div>
+                </div>
+                <div style="background: var(--bg); border-radius: 8px; padding: 20px; text-align: center;">
+                    <div style="color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Раздано всего</div>
+                    <div style="color: var(--primary); font-size: 28px; font-weight: bold;" id="stats-uploaded">0 B</div>
+                </div>
+                <div style="background: var(--bg); border-radius: 8px; padding: 20px; text-align: center;">
+                    <div style="color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Активных торрентов</div>
+                    <div style="color: var(--text); font-size: 28px; font-weight: bold;" id="stats-active">0</div>
+                </div>
+                <div style="background: var(--bg); border-radius: 8px; padding: 20px; text-align: center;">
+                    <div style="color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Общий Ratio</div>
+                    <div style="color: var(--primary); font-size: 28px; font-weight: bold;" id="stats-ratio">0.00</div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="detail-section">
-                <h3>Пиры</h3>
-                <div class="torrent-stats" id="detail-peers">
-                    <!-- Peers info -->
+    <!-- Settings View -->
+    <div id="settings-view" style="display: none;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+            <h2 style="font-family: 'Orbitron', sans-serif; color: var(--primary); margin-bottom: 20px;">⚙️ Настройки</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Папка загрузки</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" class="form-input" value="./downloads" id="download-path" style="flex: 1;">
+                    <button class="btn" onclick="selectDownloadPath()">📁</button>
                 </div>
             </div>
-
-            <div class="form-actions">
-                <button class="btn" onclick="closeDetailModal()">Закрыть</button>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Лимит загрузки (KB/s)</label>
+                <input type="number" class="form-input" value="0" id="download-limit" placeholder="0 = без лимита" style="width: 200px;">
             </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Лимит раздачи (KB/s)</label>
+                <input type="number" class="form-input" value="0" id="upload-limit" placeholder="0 = без лимита" style="width: 200px;">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="auto-seed" checked>
+                    <span style="color: var(--text);">Автоматически раздавать после загрузки</span>
+                </label>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="start-minimized">
+                    <span style="color: var(--text);">Запускать в системном трее</span>
+                </label>
+            </div>
+            
+            <button class="btn btn-primary" onclick="saveSettings()">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Сохранить настройки
+            </button>
         </div>
     </div>
 
@@ -944,16 +909,13 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        // ZTorrent Client - WebTorrent Implementation
-        
-        const client = new WebTorrent();
-        let torrents = {};
-        let globalStats = {
-            totalDownloaded: 0,
-            totalUploaded: 0
-        };
+        const { ipcRenderer } = require('electron');
 
-        // Format bytes to human readable
+        let torrents = {};
+        let globalStats = { totalDownloaded: 0, totalUploaded: 0 };
+        let currentView = 'torrents';
+
+        // Format bytes
         function formatBytes(bytes) {
             if (bytes === 0) return '0 B';
             const k = 1024;
@@ -962,26 +924,26 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Format speed (bytes per second)
+        // Format speed
         function formatSpeed(bytesPerSec) {
             return formatBytes(bytesPerSec) + '/s';
         }
 
         // Calculate ratio
         function calculateRatio(downloaded, uploaded) {
-            if (downloaded === 0) return uploaded > 0 ? Infinity : 0;
+            if (downloaded === 0) return uploaded > 0 ? '∞' : '0.00';
             return (uploaded / downloaded).toFixed(2);
         }
 
         // Get ratio class
         function getRatioClass(ratio) {
             const r = parseFloat(ratio);
-            if (r >= 1 || r === Infinity) return 'ratio-good';
+            if (r >= 1 || ratio === '∞') return 'ratio-good';
             if (r >= 0.5) return 'ratio-warning';
             return 'ratio-bad';
         }
 
-        // Show toast notification
+        // Show toast
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -990,338 +952,331 @@
             const icons = {
                 success: '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
                 error: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-                warning: '<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+                warning: '<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>'
             };
 
-            toast.innerHTML = `
-                <div class="toast-icon">${icons[type]}</div>
-                <span class="toast-message">${message}</span>
-            `;
-            
+            toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><span class="toast-message">${message}</span>`;
             container.appendChild(toast);
             
             setTimeout(() => {
                 toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100%)';
+                toast.style.transform = 'translateX(120%)';
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
 
-        // Open add modal
+        // Modals
         function openAddModal() {
             document.getElementById('add-modal').classList.add('active');
         }
 
-        // Close add modal
         function closeAddModal() {
             document.getElementById('add-modal').classList.remove('active');
             document.getElementById('magnet-link').value = '';
             document.getElementById('torrent-file').value = '';
         }
 
-        // Open detail modal
-        function openDetailModal(torrentId) {
-            const torrent = torrents[torrentId];
-            if (!torrent) return;
+        // Select file
+        // Select file - используем нативный input
+        async function selectFile() {
+            const fileInput = document.getElementById('torrent-file');
+            fileInput.click();
+        }
 
-            document.getElementById('detail-title').textContent = torrent.name;
+        // Обработка выбора файла
+        document.getElementById('torrent-file').addEventListener('change', async function(e) {
+            if (this.files && this.files.length > 0) {
+                const file = this.files[0];
+                if (file.path) {
+                    addTorrentFile(file.path);
+                } else {
+                    showToast('Не удалось получить путь к файлу', 'error');
+                }
+            }
+        });
+
+        // Показать представление (Stats/Settings)
+        function showView(view) {
+            currentView = view;
             
-            const fileList = document.getElementById('file-list');
-            fileList.innerHTML = torrent.files.map(file => `
-                <div class="file-item">
-                    <span class="file-name">${file.name}</span>
-                    <span class="file-size">${formatBytes(file.length)}</span>
-                </div>
-            `).join('');
-
-            const peersDiv = document.getElementById('detail-peers');
-            peersDiv.innerHTML = `
-                <div class="peer-badge peer-seeders">
-                    <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                    ${torrent.numPeers} пиров
-                </div>
-                <div class="peer-badge peer-leechers">
-                    <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg>
-                    ${torrent.numSeeders} сидов
-                </div>
-            `;
-
-            document.getElementById('detail-modal').classList.add('active');
+            // Обновляем активный элемент навигации
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.nav-item').classList.add('active');
+            
+            // Показываем нужный контент
+            const torrentList = document.getElementById('torrent-list');
+            const emptyState = document.getElementById('empty-state');
+            const statsView = document.getElementById('stats-view');
+            const settingsView = document.getElementById('settings-view');
+            
+            // Скрываем все виды
+            torrentList.style.display = 'none';
+            emptyState.style.display = 'none';
+            if (statsView) statsView.style.display = 'none';
+            if (settingsView) settingsView.style.display = 'none';
+            
+            if (view === 'stats') {
+                if (statsView) statsView.style.display = 'block';
+            } else if (view === 'settings') {
+                if (settingsView) settingsView.style.display = 'block';
+            } else {
+                // Показываем торренты
+                if (Object.keys(torrents).length === 0) {
+                    emptyState.style.display = 'block';
+                } else {
+                    torrentList.style.display = 'flex';
+                }
+            }
         }
 
-        // Close detail modal
-        function closeDetailModal() {
-            document.getElementById('detail-modal').classList.remove('active');
+        // Показать настройки
+        function showSettings() {
+            alert('Настройки: Здесь можно настроить лимиты скорости, папку загрузки и т.д.');
         }
+
+        // Показать статистику
+        function showStats() {
+            // Обновляем статистику при открытии
+            document.getElementById('stats-downloaded').textContent = formatBytes(globalStats.totalDownloaded);
+            document.getElementById('stats-uploaded').textContent = formatBytes(globalStats.totalUploaded);
+            document.getElementById('stats-active').textContent = Object.keys(torrents).length;
+            const ratio = calculateRatio(globalStats.totalDownloaded, globalStats.totalUploaded);
+            document.getElementById('stats-ratio').textContent = ratio;
+        }
+
+        // Сохранить настройки
+        function saveSettings() {
+            showToast('Настройки сохранены!', 'success');
+            // Здесь можно добавить сохранение в файл или localStorage
+            const settings = {
+                downloadPath: document.getElementById('download-path').value,
+                downloadLimit: document.getElementById('download-limit').value,
+                uploadLimit: document.getElementById('upload-limit').value,
+                autoSeed: document.getElementById('auto-seed').checked,
+                startMinimized: document.getElementById('start-minimized').checked
+            };
+            localStorage.setItem('ztorrent-settings', JSON.stringify(settings));
+        }
+
+        // Выбрать папку загрузки
+        function selectDownloadPath() {
+            showToast('Функция выбора папки будет добавлена', 'warning');
+        }
+
+        // Обновить статистику при переключении на Stats
+        const originalShowView = showView;
+        showView = function(view) {
+            if (view === 'stats') {
+                document.getElementById('stats-downloaded').textContent = formatBytes(globalStats.totalDownloaded);
+                document.getElementById('stats-uploaded').textContent = formatBytes(globalStats.totalUploaded);
+                document.getElementById('stats-active').textContent = Object.keys(torrents).length;
+                const ratio = calculateRatio(globalStats.totalDownloaded, globalStats.totalUploaded);
+                document.getElementById('stats-ratio').textContent = ratio;
+            }
+            originalShowView(view);
+        };
 
         // Add torrent
-        function addTorrent() {
-            const magnetLink = document.getElementById('magnet-link').value.trim();
-            const fileInput = document.getElementById('torrent-file').files[0];
-
-            if (!magnetLink && !fileInput) {
-                showToast('Укажите magnet-ссылку или выберите файл', 'error');
-                return;
-            }
-
-            if (magnetLink && magnetLink.startsWith('magnet:?')) {
-                addMagnet(magnetLink);
-            } else if (fileInput) {
-                addFile(fileInput);
+        async function addTorrent() {
+            const magnet = document.getElementById('magnet-link').value.trim();
+            
+            if (magnet) {
+                if (!magnet.startsWith('magnet:?')) {
+                    showToast('Неверный формат magnet-ссылки', 'error');
+                    return;
+                }
+                try {
+                    const result = await ipcRenderer.invoke('add-magnet', magnet);
+                    if (result.success) {
+                        torrents[result.id] = result;
+                        showToast(`Торрент "${result.name}" добавлен`, 'success');
+                        closeAddModal();
+                        renderTorrents();
+                    }
+                } catch (err) {
+                    showToast('Ошибка: ' + err, 'error');
+                }
             } else {
-                showToast('Неверный формат magnet-ссылки', 'error');
+                const file = document.getElementById('torrent-file').files[0];
+                if (file) {
+                    addTorrentFile(file.path);
+                } else {
+                    showToast('Выберите файл или вставьте magnet-ссылку', 'warning');
+                }
             }
         }
 
-        // Add magnet link
-        function addMagnet(magnet) {
-            showToast('Подключение к сети...', 'warning');
-            
-            client.add(magnet, { path: './downloads' }, (torrent) => {
-                registerTorrent(torrent);
-                showToast(`Торрент "${torrent.name}" добавлен`, 'success');
-                closeAddModal();
-            });
-        }
-
-        // Add file
-        function addFile(file) {
-            showToast('Обработка файла...', 'warning');
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                client.add(e.target.result, { path: './downloads' }, (torrent) => {
-                    registerTorrent(torrent);
-                    showToast(`Торрент "${torrent.name}" добавлен`, 'success');
+        async function addTorrentFile(filePath) {
+            try {
+                const result = await ipcRenderer.invoke('add-torrent-file', filePath);
+                if (result.success) {
+                    torrents[result.id] = result;
+                    showToast(`Торрент "${result.name}" добавлен`, 'success');
                     closeAddModal();
-                });
-            };
-            reader.readAsArrayBuffer(file);
+                    renderTorrents();
+                }
+            } catch (err) {
+                showToast('Ошибка: ' + err, 'error');
+            }
         }
 
-        // Register torrent
-        function registerTorrent(torrent) {
-            const id = torrent.infoHash || Date.now().toString();
-            torrents[id] = torrent;
+        // Pause/Resume
+        async function pauseResume(id) {
+            const t = torrents[id];
+            if (t.paused) {
+                await ipcRenderer.invoke('resume-torrent', id);
+                t.paused = false;
+            } else {
+                await ipcRenderer.invoke('pause-torrent', id);
+                t.paused = true;
+            }
+            renderTorrents();
+        }
+
+        // Remove
+        async function removeTorrent(id) {
+            await ipcRenderer.invoke('remove-torrent', id);
+            delete torrents[id];
+            renderTorrents();
+            showToast('Торрент удалён', 'success');
+        }
+
+        // Update torrents data
+        async function updateTorrents() {
+            const data = await ipcRenderer.invoke('get-torrents');
+            data.forEach(t => {
+                if (!torrents[t.id]) {
+                    torrents[t.id] = t;
+                } else {
+                    Object.assign(torrents[t.id], t);
+                }
+            });
+
+            // Calculate global stats
+            let totalDown = 0, totalUp = 0, totalPeers = 0;
+            data.forEach(t => {
+                totalDown = t.uploaded; // accumulated
+                totalUp = t.uploaded;
+                totalPeers += t.numPeers;
+            });
+
+            globalStats.totalDownloaded = data.reduce((sum, t) => sum + t.downloaded, 0);
+            globalStats.totalUploaded = data.reduce((sum, t) => sum + t.uploaded, 0);
+
+            document.getElementById('total-downloaded').textContent = formatBytes(globalStats.totalDownloaded);
+            document.getElementById('total-uploaded').textContent = formatBytes(globalStats.totalUploaded);
             
-            torrent.on('done', () => {
-                showToast(`Загрузка "${torrent.name}" завершена!`, 'success');
-                renderTorrents();
-            });
-
-            torrent.on('error', (err) => {
-                showToast(`Ошибка: ${err.message}`, 'error');
-                renderTorrents();
-            });
-
-            torrent.on('download', () => updateGlobalStats());
-            torrent.on('upload', () => updateGlobalStats());
+            const ratio = calculateRatio(globalStats.totalDownloaded, globalStats.totalUploaded);
+            const ratioEl = document.getElementById('global-ratio');
+            ratioEl.textContent = ratio;
+            ratioEl.className = `ratio-badge ${getRatioClass(ratio)}`;
 
             renderTorrents();
         }
 
-        // Remove torrent
-        function removeTorrent(torrentId) {
-            const torrent = torrents[torrentId];
-            if (torrent) {
-                torrent.destroy();
-                delete torrents[torrentId];
-                renderTorrents();
-                showToast('Торрент удалён', 'success');
-            }
-        }
-
-        // Pause/Resume torrent
-        function pauseResumeTorrent(torrentId) {
-            const torrent = torrents[torrentId];
-            if (torrent) {
-                if (torrent.paused) {
-                    torrent.resume();
-                } else {
-                    torrent.pause();
-                }
-                renderTorrents();
-            }
-        }
-
-        // Update global stats
-        function updateGlobalStats() {
-            let totalDownloaded = 0;
-            let totalUploaded = 0;
-            let totalPeers = 0;
-
-            Object.values(torrents).forEach(torrent => {
-                totalDownloaded += torrent.downloaded;
-                totalUploaded += torrent.uploaded;
-                totalPeers += torrent.numPeers;
-            });
-
-            globalStats.totalDownloaded = totalDownloaded;
-            globalStats.totalUploaded = totalUploaded;
-
-            document.getElementById('total-downloaded').textContent = formatBytes(totalDownloaded);
-            document.getElementById('total-uploaded').textContent = formatBytes(totalUploaded);
-            
-            const ratio = calculateRatio(totalDownloaded, totalUploaded);
-            const ratioEl = document.getElementById('global-ratio');
-            ratioEl.textContent = ratio === 'Infinity' ? '∞' : ratio;
-            ratioEl.className = `ratio-badge ${getRatioClass(ratio)}`;
-            
-            document.getElementById('total-peers').textContent = totalPeers;
-        }
-
-        // Get status text
-        function getStatusText(torrent) {
-            if (torrent.error) return 'error';
-            if (torrent.paused) return 'paused';
-            if (torrent.done) return 'seeding';
-            return 'downloading';
-        }
-
-        // Get status label
-        function getStatusLabel(status) {
-            const labels = {
-                seeding: 'Раздаётся',
-                downloading: 'Загрузка',
-                paused: 'Пауза',
-                error: 'Ошибка'
-            };
-            return labels[status] || status;
-        }
-
-        // Render torrents
+        // Render
         function renderTorrents() {
             const list = document.getElementById('torrent-list');
-            const emptyState = document.getElementById('empty-state');
+            const empty = document.getElementById('empty-state');
             
-            const torrentArray = Object.entries(torrents);
+            const arr = Object.values(torrents);
             
-            if (torrentArray.length === 0) {
+            if (arr.length === 0) {
                 list.style.display = 'none';
-                emptyState.style.display = 'block';
+                empty.style.display = 'block';
                 return;
             }
 
             list.style.display = 'flex';
-            emptyState.style.display = 'none';
+            empty.style.display = 'none';
 
-            list.innerHTML = torrentArray.map(([id, torrent]) => {
-                const status = getStatusText(torrent);
-                const progress = (torrent.progress * 100).toFixed(1);
-                const ratio = calculateRatio(torrent.downloaded, torrent.uploaded);
-                
+            list.innerHTML = arr.map(t => {
+                const progress = (t.progress * 100).toFixed(1);
+                const ratio = calculateRatio(t.downloaded, t.uploaded);
+                let status = t.paused ? 'paused' : (t.done ? 'seeding' : 'downloading');
+                let statusLabel = t.paused ? 'Пауза' : (t.done ? 'Раздаётся' : 'Загрузка');
+
                 return `
-                    <div class="torrent-card" onclick="openDetailModal('${id}')">
-                        <div class="torrent-header">
-                            <div class="torrent-name">${torrent.name}</div>
-                            <div class="torrent-status status-${status}">
-                                ${status !== 'paused' ? '<span class="status-dot"></span>' : ''}
-                                ${getStatusLabel(status)}
-                            </div>
-                        </div>
-                        
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${progress}%"></div>
-                            </div>
-                            <div class="progress-info">
-                                <span>${progress}% • ${formatBytes(torrent.downloaded)} из ${formatBytes(torrent.length)}</span>
-                                <span class="ratio-badge ${getRatioClass(ratio)}">Ratio: ${ratio === 'Infinity' ? '∞' : ratio}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="torrent-stats">
-                            <div class="torrent-stat">
-                                <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg>
-                                <span class="torrent-stat-label">Загрузка</span>
-                                <span class="torrent-stat-value speed-down">${formatSpeed(torrent.downloadSpeed)}</span>
-                            </div>
-                            <div class="torrent-stat">
-                                <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                                <span class="torrent-stat-label">Раздача</span>
-                                <span class="torrent-stat-value speed-up">${formatSpeed(torrent.uploadSpeed)}</span>
-                            </div>
-                            <div class="peer-badge peer-seeders">
-                                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--primary);"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                                ${torrent.numSeeders} сидов
-                            </div>
-                            <div class="peer-badge peer-leechers">
-                                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--warning);"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg>
-                                ${torrent.numPeers} пиров
-                            </div>
-                        </div>
-                        
-                        <div class="torrent-actions" onclick="event.stopPropagation()">
-                            <button class="btn btn-sm" onclick="pauseResumeTorrent('${id}')">
-                                ${torrent.paused ? 
-                                    '<svg viewBox="0 0 24 24" style="width:14px;height:14px;"><polygon points="5 3 19 12 5 21 5 3"/></svg> Продолжить' : 
-                                    '<svg viewBox="0 0 24 24" style="width:14px;height:14px;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Пауза'}
-                            </button>
-                            <button class="btn btn-sm" style="border-color: var(--danger); color: var(--danger);" onclick="removeTorrent('${id}')">
-                                <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                                Удалить
-                            </button>
+                <div class="torrent-card">
+                    <div class="torrent-header">
+                        <div class="torrent-name">${t.name}</div>
+                        <div class="torrent-status status-${status}">
+                            ${status !== 'paused' ? '<span class="status-dot"></span>' : ''}
+                            ${statusLabel}
                         </div>
                     </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="progress-info">
+                            <span>${progress}% • ${formatBytes(t.downloaded)} / ${formatBytes(t.length)}</span>
+                            <span class="ratio-badge ${getRatioClass(ratio)}">Ratio: ${ratio}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="torrent-stats">
+                        <div class="torrent-stat">
+                            <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg>
+                            <span class="torrent-stat-value speed-down">${formatSpeed(t.downloadSpeed)}</span>
+                        </div>
+                        <div class="torrent-stat">
+                            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            <span class="torrent-stat-value speed-up">${formatSpeed(t.uploadSpeed)}</span>
+                        </div>
+                        <div class="peer-badge peer-seeders">${t.numSeeds} сидов</div>
+                        <div class="peer-badge peer-leechers">${t.numPeers} пиров</div>
+                    </div>
+                    
+                    <div class="torrent-actions">
+                        <button class="btn btn-sm" onclick="pauseResume('${t.id}')">
+                            ${t.paused ? '▶ Продолжить' : '⏸ Пауза'}
+                        </button>
+                        <button class="btn btn-sm" style="border-color: var(--danger); color: var(--danger);" onclick="removeTorrent('${t.id}')">
+                            ✕ Удалить
+                        </button>
+                    </div>
+                </div>
                 `;
             }).join('');
-
-            updateGlobalStats();
         }
 
-        // Update stats periodically
-        setInterval(() => {
-            renderTorrents();
-        }, 1000);
+        // Window controls
+        document.getElementById('minimize-btn').onclick = () => ipcRenderer.send('minimize');
+        document.getElementById('maximize-btn').onclick = () => ipcRenderer.send('maximize');
+        document.getElementById('close-btn').onclick = () => ipcRenderer.send('close');
+        document.getElementById('select-file-btn').onclick = () => document.getElementById('torrent-file').click();
 
-        // Drag and drop handlers
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('torrent-file');
-
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            
-            if (e.dataTransfer.files.length > 0) {
-                fileInput.files = e.dataTransfer.files;
-                const file = e.dataTransfer.files[0];
-                if (file.name.endsWith('.torrent')) {
-                    document.getElementById('magnet-link').value = '';
-                    addFile(file);
-                } else {
-                    showToast('Выберите файл с расширением .torrent', 'error');
-                }
-            }
-        });
-
-        // Close modals on backdrop click
-        document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    overlay.classList.remove('active');
-                }
+        // Close modal on backdrop click
+        document.querySelectorAll('.modal-overlay').forEach(o => {
+            o.addEventListener('click', e => {
+                if (e.target === o) o.classList.remove('active');
             });
         });
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
+        // Keyboard
+        document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {
                 closeAddModal();
-                closeDetailModal();
             }
         });
 
-        // Initial render
-        renderTorrents();
+        // Listen for events from main
+        ipcRenderer.on('torrent-done', (e, data) => {
+            showToast(`Загрузка "${data.name}" завершена!`, 'success');
+        });
+
+        ipcRenderer.on('torrent-error', (e, data) => {
+            showToast(`Ошибка: ${data.error}`, 'error');
+        });
+
+        // Update loop
+        setInterval(updateTorrents, 1000);
+        
+        // Initial
         showToast('ZTorrent готов к работе!', 'success');
     </script>
 </body>
